@@ -1,4 +1,4 @@
-const { postPredictHandler } = require('./handler');
+const { postPredictHandler } = require('../server/handler');
 
 const routes = [
   {
@@ -9,10 +9,9 @@ const routes = [
       payload: {
         allow: 'multipart/form-data',
         multipart: true,
-        maxBytes: 1000000
       }
     }
   },
 ]
 
-module.exports = routes;
+module.exports =routes;

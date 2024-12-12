@@ -2,34 +2,53 @@ const predictClassification = require('../services/inferenceService');
 const crypto = require('crypto');
 const storeData = require('../services/storeData');
 
-async function postPredictHandler(request, h) {
-  const { image } = request.payload;
-  const { model } = request.server.app;
+const postPredictHandler = async (request, h) => {
+  try {
+    const { image } = request.payload; // Mengambil file gambar dari payload
+    const { model } = request.server.app; // Model TensorFlow dari server app
 
-  const { label, ingredients } = await predictClassification(model, image);
-  const id = crypto.randomUUID();
-//   const createdAt = new Date().toISOString();
-  const date = new Date();
-  const tanggal = date.toISOString().split('T')[0]; // Extract only date part
-  const Jam = date.toTimeString().split(' ')[0]; // Extract time part
+    if (!image) {
+      return h.response({
+        status: 'fail',
+        message: 'Gambar tidak ditemukan dalam payload.',
+      }).code(400);
+    }
 
-  const data = {
-    "id": id,
-    "result": label,
-    "ingredient": ingredients,
-    "tanggal": tanggal,
-    "Jam": Jam
+    // Melakukan prediksi
+    const { label, ingredients } = await predictClassification(model, image);
+
+    // Membuat data hasil prediksi
+    const id = crypto.randomUUID();
+    const date = new Date();
+    const tanggal = date.toISOString().split('T')[0]; // Format tanggal
+    const jam = date.toTimeString().split(' ')[0]; // Format waktu
+
+    const data = {
+      id,
+      result: label,
+      ingredient: ingredients,
+      tanggal,
+      jam,
+    };
+
+    // Menyimpan data hasil prediksi
+    await storeData(id, data);
+
+    // Mengembalikan response berhasil
+    return h.response({
+      status: 'success',
+      message: 'Prediksi berhasil dilakukan.',
+      data,
+    }).code(201);
+  } catch (error) {
+    console.error('Error in postPredictHandler:', error);
+
+    // Mengembalikan response gagal dengan pesan error
+    return h.response({
+      status: 'fail',
+      message: 'Terjadi kesalahan dalam melakukan prediksi. Silakan coba lagi.',
+    }).code(500);
   }
-
-  await storeData(id, data);
-
-  const response = h.response({
-    status: 'success',
-    message: 'Model is predicted successfully',
-    data
-  })
-  response.code(201);
-  return response;
-}
+};
 
 module.exports = { postPredictHandler };
